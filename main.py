@@ -99,8 +99,6 @@ def main():
             # 組成式を解析
             composition = parse_formula(formula)
             st.session_state["composition"] = composition
-            st.success("組成式の解析に成功しました。")
-
         except Exception as e:
             st.error(f"組成式の解析に失敗しました: {e}")
     # 確認用に現在の保存リストを表示
@@ -150,19 +148,31 @@ def main():
                     for elem, coeff in composition.items():
                         atomic_weight = get_atomic_weight(elem)
                         if atomic_weight:
-                            required = atomic_weight * coeff * factor
-                            results[elem] = f"{required:.5f}"
+                            required = round(atomic_weight * coeff * factor, 7)
+                            results[elem] = required
                         else:
-                            results[elem] = "原子量情報なし"
+                            results[elem] = None  # 原子量情報なし
 
+                    # **DataFrameを作成**
                     df_results = pd.DataFrame(
                         {
                             "元素": list(results.keys()),
                             "重量(g)": list(results.values()),
                         }
                     )
+
+                    # **インデックスを設定**
                     df_results = df_results.set_index("元素")
-                    st.table(df_results)
+
+                    # **合計行を追加**
+                    if df_results["重量(g)"].notna().all():  # すべての行が数値なら
+                        total_weight = round(df_results["重量(g)"].sum(), 7)
+                        df_results.loc["合計"] = (
+                            total_weight  # DataFrame に「合計」行を追加
+                        )
+
+                    # **結果を表示**
+                    st.dataframe(df_results.style.format({"重量(g)": "{:.5f}"}))
 
 
 if __name__ == "__main__":
